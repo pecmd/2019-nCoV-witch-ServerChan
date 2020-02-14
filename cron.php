@@ -1,21 +1,5 @@
 <?php
 
-/* 
-前提：
-
-※ 你需要一个带有PHP环境的服务器或者电脑(24小时开机)
-※ 设置一个计划任务，定时运行这个脚本(如：php /home/cron.php),推荐10分钟运行一次，间隔尽量大于10分钟
-
-其次：
-
-1.先申请一个GITHUB账号
-2.进入https://sc.ftqq.com,使用刚才注册的账号进行登录，获取SCKEY填到下面，并且修改你需要关注的省份
-3.按网站提示扫码绑定微信即可接收信息推送 
-
-由于之前的API中转接口访问人数过多，所以干脆直接访问丁香园原始网址，丁香园疫情网址为：https://ncov.dxy.cn/ncovh5/view/pneumonia
-
-*/
-
 //以下字段需要自己定义
 define("SCKEY", "你的SCKEY");
 define("SHENG","辽宁省");
@@ -30,29 +14,38 @@ function find_pro($dat)
 	{
 		if($dat[$i]['provinceName'] == SHENG)
 			{
+				//当前省份总的确诊人数
 				$s_conf = intval($dat[$i]['confirmedCount']);
+				//当前省份总的治愈人数
 				$s_cured = intval($dat[$i]['curedCount']);
+				//当前省份总的死亡人数
 				$s_dead = intval($dat[$i]['deadCount']);	
 				
+				//如果发现确诊、治愈、死亡任一数据变化就开启推送
 				if(intval($s_conf) > intval(get('s_conf')) or intval($s_conf) > intval(get('s_dead')) or intval($s_cured) > intval(get('s_cured')))
 				{
+					//消息标题ID，这个是为了应对Server酱不能在短时间内发送相同标题的内容
 					$id = intval(get("id")) + 1;
-					
+					//合成标题
 					$title = $id.".".SHENG."确诊".$s_conf."例,增加".(intval($s_conf)-intval(get("s_conf")))."例";
-					
+					//保存以上变量到文件
 					set('id',$id);
 					set('s_conf',$s_conf);
 					set('s_cured',$s_conf);
 					set('s_dead',$s_conf);
-					
+					//合成信息主体内容开始，采用MAKKDOWN语法
 					$info = "|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;地区&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;确诊&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;治愈&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;死亡&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|\r\n|:-:|:-:|:-:|:-:|\r\n";
+					//遍历所有城市数据开始
 					for($j = 0 ;$j < count($dat[$i]['cities']);$j++)
-					{	
+					{		
+						//城市名称
 						$cityname = $dat[$i]['cities'][$j]['cityName'];
 						$info = $info."|".$cityname;
 						
+						//提取之前存储的数据用于对比（确诊）
 						$old = intval(get($cityname.'_conf'));
 						$new = intval($dat[$i]['cities'][$j]['confirmedCount']);
+						//如果新数据大于旧数据，内容中标注加号(+)变化
 						if($new > $old)
 						{
 							$info = $info."|***".$new.'***&nbsp;&nbsp;+'.($new-$old);
@@ -60,9 +53,10 @@ function find_pro($dat)
 						}else{
 							$info = $info."|***".$new.'***';
 						}
-
+						//提取之前存储的数据用于对比（治愈）
 						$old = intval(get($cityname.'_cured'));
 						$new = intval($dat[$i]['cities'][$j]['curedCount']);
+						//如果新数据大于旧数据，内容中标注加号(+)变化
 						if($new > $old)
 						{
 							$info = $info."|***".$new.'***&nbsp;&nbsp;+'.($new-$old);
@@ -70,9 +64,10 @@ function find_pro($dat)
 						}else{
 							$info = $info."|***".$new.'***';
 						}
-						
+						//提取之前存储的数据用于对比（死亡）
 						$old = intval(get($cityname.'_dead'));
 						$new = intval($dat[$i]['cities'][$j]['deadCount']);
+						//如果新数据大于旧数据，内容中标注加号(+)变化
 						if($new > $old)
 						{
 							$info = $info."|***".$new.'***&nbsp;&nbsp;+'.($new-$old);
@@ -80,10 +75,10 @@ function find_pro($dat)
 						}else{
 							$info = $info."|***".$new.'***';
 						}
-						
+						//添加信息结尾
 						$info = $info."|\r\n";										
 					}					
-					
+					//进行消息推送
 					print_r(sc_send($title, $info, SCKEY));
 					
 					
@@ -96,19 +91,20 @@ function find_pro($dat)
 	echo '该省份:<'.SHENG.'>没有数据或输入错误';
 }
 
+//本地数据存储函数
 function set($key, $value)
 {
     $data = @json_decode(file_get_contents('data.json'), true);
     $data[md5($key)] = $value;
     file_put_contents('data.json', json_encode($data));
 }
-
+//本地读取函数
 function get($key)
 {
     $data = @json_decode(file_get_contents('data.json'), true);
     return isset($data[md5($key)]) ? $data[md5($key)] : false;
 }
-
+//通过正则抓取网页内容
 function get_nCoV_news()
 {
     $reg = '#<script\sid="getAreaStat">.*?window.getAreaStat\s=\s(.*?).catch#';
@@ -117,15 +113,16 @@ function get_nCoV_news()
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); 
 	$data = curl_exec($ch);
 	curl_close($ch);
-	
+    //进行正则匹配	
     if (preg_match($reg, $data, $out)) {
+	//如果匹配成功返回json对象  
         return json_decode($out[1], 1);
     } else {
         echo "正则匹配失败:\r\n" . $data;
     }
     return false;
 }
-
+//推送函数
 function sc_send($text, $desp = '', $key = '')
 {
     $postdata = http_build_query(
