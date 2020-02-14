@@ -21,3 +21,4 @@
 >> #### 【数据来源】
 #### 丁香园
 #### 官方网站：https://ncov.dxy.cn/ncovh5/view/pneumonia
+![image](https://github.com/pecmd/2019-nCoV-witch-ServerChan/blob/master/123.jpg?raw=true)
