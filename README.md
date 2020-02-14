@@ -14,10 +14,10 @@
 
 #### 由于之前的API中转接口访问人数过多，所以干脆直接访问丁香园原始网址，丁香园疫情网址为：https://ncov.dxy.cn/ncovh5/view/pneumonia
  
->> ####【推送服务】
+>> #### 【推送服务】
 #### 「Server酱」，英文名「ServerChan」，是一款「程序员」和「服务器」之间的通信软件。
 #### 官方网站：http://sc.ftqq.com
 
->> ####【数据来源】
+>> #### 【数据来源】
 #### 丁香园
 #### 官方网站：https://ncov.dxy.cn/ncovh5/view/pneumonia
